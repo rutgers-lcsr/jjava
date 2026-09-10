@@ -3,7 +3,7 @@
 * #114 %load magic does not recognize notebooks
 * #115 "%load" magic should not be adding extensions to file names
 * #118 Exception stack trace truncated — cause chain not fully reported
-* #119 Variable nullification on later imports
+* #119 Adding an import in a later cell nullifies variables defined in earlier cells
 
 ## 1.0-a7
 
