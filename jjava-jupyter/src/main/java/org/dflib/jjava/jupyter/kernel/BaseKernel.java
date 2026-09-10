@@ -358,7 +358,6 @@ public abstract class BaseKernel {
 
     protected List<String> formatError(Throwable e) {
         List<String> lines = new ArrayList<>();
-        lines.add(this.errorStyler.secondary("---------------------------------------------------------------------------"));
 
         StringWriter stringWriter = new StringWriter();
         PrintWriter printWriter = new PrintWriter(stringWriter);
@@ -430,7 +429,10 @@ public abstract class BaseKernel {
             }
 
             env.defer().reply(new ExecuteReply(count, Collections.emptyMap()));
-        } catch (Exception e) {
+        } catch (Throwable e) {
+            // Throwable, not Exception: an escaping Error (OutOfMemoryError, LinkageError,
+            // AssertionError from non-JShell evaluators, ...) would otherwise kill the
+            // shell channel loop and permanently hang the kernel
             ErrorReply error = ErrorReply.of(e);
             error.setExecutionCount(count);
             env.publish(PublishError.of(e, this::formatError));
@@ -444,7 +446,7 @@ public abstract class BaseKernel {
         try {
             DisplayData inspection = this.inspect(request.getCode(), request.getCursorPos(), request.getDetailLevel() > 0);
             env.reply(new InspectReply(inspection != null, DisplayData.emptyIfNull(inspection)));
-        } catch (Exception e) {
+        } catch (Throwable e) {
             env.replyError(InspectReply.MESSAGE_TYPE.error(), ErrorReply.of(e));
         }
     }
@@ -458,7 +460,7 @@ public abstract class BaseKernel {
                 env.reply(new CompleteReply(Collections.emptyList(), request.getCursorPos(), request.getCursorPos(), Collections.emptyMap()));
             else
                 env.reply(new CompleteReply(options.getReplacements(), options.getSourceStart(), options.getSourceEnd(), Collections.emptyMap()));
-        } catch (Exception e) {
+        } catch (Throwable e) {
             env.replyError(CompleteReply.MESSAGE_TYPE.error(), ErrorReply.of(e));
         }
     }

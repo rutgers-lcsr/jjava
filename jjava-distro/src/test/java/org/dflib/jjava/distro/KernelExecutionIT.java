@@ -1,25 +1,51 @@
 package org.dflib.jjava.distro;
 
 import org.junit.jupiter.api.Test;
-import org.testcontainers.containers.Container;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class KernelExecutionIT extends ContainerizedKernelCase {
 
     /**
-     * @see <a href="https://github.com/dflib/jjava/issues/119">#119</a>
+     * The variable and the later import must be in the same cell. Split across cells, this
+     * scenario passes even with the bug present.
      */
     @Test
     public void variableSurvivesLaterImports() throws Exception {
-        String snippet = "%load " + CONTAINER_RESOURCES + "/nullifying_import.jshell";
+        KernelRun run = executeInKernel(
+                "%maven com.fasterxml.jackson.core:jackson-databind:2.21.2",
+                String.join("\n",
+                        "import com.fasterxml.jackson.databind.*;",
+                        "var om = new ObjectMapper().findAndRegisterModules();",
+                        "import com.fasterxml.jackson.databind.node.*; import com.fasterxml.jackson.databind.type.*;",
+                        "om.getClass().getName()"
+                )
+        ).assertNoErrors();
 
-        Container.ExecResult snippetResult = executeInKernel(snippet);
+        assertEquals("com.fasterxml.jackson.databind.ObjectMapper", run.cell(2).result());
+    }
 
-        assertEquals(0, snippetResult.getExitCode(), snippetResult.getStdout());
-        assertThat(snippetResult.getStdout(), not(containsString("|")));
+    @Test
+    public void variableRedeclarationUsesLatestValue() throws Exception {
+        KernelRun run = executeInKernel(
+                "int v = 1;",
+                "v",
+                "float v = 2.4f;",
+                "v"
+        ).assertNoErrors();
+
+        assertEquals("1", run.cell(2).result());
+        assertEquals("2.4", run.cell(4).result());
+    }
+
+    @Test
+    public void variableRedeclarationInSameCell() throws Exception {
+        KernelRun run = executeInKernel(
+                "var v = \"a\";\nv",
+                "var v = \"b\";\nv"
+        ).assertNoErrors();
+
+        assertEquals("a", run.cell(1).result());
+        assertEquals("b", run.cell(2).result());
     }
 }
